@@ -132,9 +132,7 @@
     /* Screen two: contextual ask */
     .chat-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
     .chat-head .lede { margin-top: 7px; }
-    .scope-controls { display: flex; align-items: center; gap: 6px; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: white; }
-    .scope-button { padding: 7px 10px; border: 0; border-radius: 8px; background: transparent; color: #7b8780; font-size: 9px; font-weight: 650; cursor: pointer; }
-    .scope-button[aria-pressed="true"] { background: #eef2e4; color: #61752a; }
+    .scope-hint { max-width: 300px; margin: 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 11px; background: #fff; color: #718078; font-size: 9px; line-height: 1.45; }
     .workbench { display: grid; grid-template-columns: minmax(390px, 1.18fr) minmax(330px, .82fr); max-width: 1160px; min-height: 488px; border: 1px solid #e1e5de; border-radius: 17px; background: #f7f8f4; overflow: hidden; box-shadow: 0 8px 26px rgba(40, 53, 44, .035); }
     .screen-pane { position: relative; min-width: 0; padding: 17px; border-right: 1px solid #e3e7e0; }
     .pane-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
@@ -142,7 +140,13 @@
     .green-dot { width: 6px; height: 6px; border-radius: 50%; background: #93ad31; }
     .capture-button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid #dce2d8; border-radius: 8px; background: #fff; color: #71806d; font-size: 9px; font-weight: 650; cursor: pointer; }
     .capture-button:hover { border-color: #adc06a; }
+    .capture-button[aria-pressed="true"] { border-color: #c9d5a1; background: #f3f7e9; color: #526c24; }
+    .capture-button:disabled { cursor: wait; opacity: .65; }
     .browser { position: relative; min-height: 396px; border: 1px solid #dfe4de; border-radius: 12px; background: white; overflow: hidden; }
+    .browser.is-sharing { display: grid; height: min(68vh, 560px); min-height: 320px; place-items: center; border-color: #283a33; background: #17211e; }
+    .screen-preview { display: block; width: 100%; height: 100%; min-height: 320px; object-fit: contain; background: #17211e; }
+    .preview-callout { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; padding: 10px 12px; border: 1px solid #e0e8cf; border-radius: 10px; background: #f7faef; color: #68764b; font-size: 9px; line-height: 1.5; }
+    .preview-callout strong { color: #526526; }
     .browser-chrome { display: flex; align-items: center; gap: 5px; height: 37px; padding: 0 12px; border-bottom: 1px solid #edf0eb; background: #fbfcfa; }
     .browser-chrome i { width: 6px; height: 6px; border-radius: 50%; background: #d7dcd5; }
     .browser-url { display: flex; align-items: center; width: min(63%, 300px); height: 20px; margin-left: 9px; padding: 0 9px; border-radius: 6px; background: #f0f2ef; color: #9aa39d; font-size: 8px; }
@@ -270,11 +274,12 @@
       h1 { font-size: 31px; }
       .setup-visual { min-height: 285px; padding: 13px; }
       .mini-screen { min-height: 212px; padding: 12px; }
-      .scope-controls { width: 100%; }
-      .scope-button { flex: 1; }
+      .scope-hint { max-width: none; width: 100%; }
       .pane-top { align-items: flex-start; gap: 9px; }
       .capture-button { font-size: 8px; }
       .screen-pane { padding: 12px; }
+      .browser.is-sharing { height: min(54vh, 420px); min-height: 280px; }
+      .screen-preview { min-height: 280px; }
       .webpage { padding: 20px 15px; }
       .library-layout { margin-top: 19px; }
       .panel-head { padding: 14px; }
@@ -314,7 +319,7 @@
 
     <main class="main">
       <div class="topline">
-        <span class="prototype-badge">Interactive concept · simulated screen</span>
+        <span class="prototype-badge">Interactive concept · opt-in local preview</span>
         <span class="progress"><span id="progress-label">01 / 03</span><span class="progress-bars" aria-hidden="true"><i class="active"></i><i></i><i></i></span></span>
       </div>
 
@@ -330,17 +335,17 @@
             <p class="field-label">HOW SHOULD VELA SEE YOUR SCREEN?</p>
             <div class="mode-list" role="group" aria-label="Screen context mode">
               <button class="mode-option" type="button" data-mode="ask" aria-pressed="true">
-                <span class="radio-mark" aria-hidden="true"></span><span class="mode-text"><strong>Only when I ask <span class="mode-tag">Recommended</span></strong><small>Share a tab or choose an area for one question.</small></span>
+                <span class="radio-mark" aria-hidden="true"></span><span class="mode-text"><strong>Only when I ask <span class="mode-tag">Recommended</span></strong><small>Choose a tab or screen for one question.</small></span>
               </button>
               <button class="mode-option" type="button" data-mode="memory" aria-pressed="false">
                 <span class="radio-mark" aria-hidden="true"></span><span class="mode-text"><strong>Remember a little context</strong><small>Keep a short, searchable history on this device.</small></span>
               </button>
             </div>
             <div class="permission-row">
-              <div class="permission-copy"><span class="permission-icon" aria-hidden="true">▧</span><span><strong id="permission-title">Screen sharing</strong><small id="permission-status">Not connected · choose a tab or area</small></span></div>
-              <button class="text-button" id="connect-button" type="button">Set up</button>
+              <div class="permission-copy"><span class="permission-icon" aria-hidden="true">▧</span><span><strong id="permission-title">Browser screen share</strong><small id="permission-status">Off · choose a tab, window, or screen</small></span></div>
+              <button class="text-button" id="connect-button" type="button" aria-pressed="false">Share screen</button>
             </div>
-            <p class="privacy-note"><span aria-hidden="true">◈</span><span><b>Clear by default.</b> You’ll always see when sharing is active. This prototype only simulates that permission.</span></p>
+            <p class="privacy-note"><span aria-hidden="true">◈</span><span><b>You choose each time.</b> The browser asks what to share. Vela previews it only on this page; no frames are uploaded or saved.</span></p>
             <div class="button-row"><button class="primary" type="button" data-go="chat">Continue to your screen <span class="arrow" aria-hidden="true">→</span></button><button class="secondary" type="button" data-go="library">See privacy controls</button></div>
           </div>
           <div class="setup-visual" aria-label="Illustration of a shared screen with a compact assistant">
@@ -352,21 +357,22 @@
               <div class="mini-columns"><div class="mini-graphic"></div><div class="mini-copy"><i></i><i></i><i></i></div></div>
             </div>
             <div class="float-chip"><span class="float-icon" aria-hidden="true">✳</span><span><strong>Ask about this</strong><small>Only what you choose to share</small></span></div>
-            <span class="visual-caption">A preview · no live screen access</span>
+            <span class="visual-caption">Illustration only · sharing starts when you choose</span>
           </div>
         </div>
-        <p class="footer-note">A concept prototype. Permission prompts and AI responses are simulated.</p>
+        <p class="footer-note">Screen-sharing permission is handled by your browser; Vela’s AI responses are sample text.</p>
       </section>
 
       <section class="screen" id="screen-chat" aria-labelledby="chat-title" hidden>
         <div class="chat-head">
-          <div><p class="eyebrow">02 &nbsp;·&nbsp; Right where you need it</p><h1 id="chat-title">Your screen, in context.</h1><p class="lede">Ask naturally. Vela points back to the part of the page it used.</p></div>
-          <div class="scope-controls" role="group" aria-label="Choose what Vela can see"><button class="scope-button" type="button" data-scope="tab" aria-pressed="true">This tab</button><button class="scope-button" type="button" data-scope="area" aria-pressed="false">Pick an area</button></div>
+          <div><p class="eyebrow">02 &nbsp;·&nbsp; Right where you need it</p><h1 id="chat-title">Your screen, in context.</h1><p class="lede">Explore sample questions or preview a screen locally. No AI model is connected yet.</p></div>
+          <p class="scope-hint">Choose a tab, window, or screen in the browser picker; another tab avoids a recursive preview.</p>
         </div>
         <div class="workbench">
           <div class="screen-pane">
-            <div class="pane-top"><span class="pane-top-label"><i class="green-dot"></i><span id="scope-label">Sharing this tab</span></span><button class="capture-button" id="capture-button" type="button"><span aria-hidden="true">◉</span><span id="capture-label">Capture context</span></button></div>
-            <div class="browser">
+            <div class="pane-top"><span class="pane-top-label"><i class="green-dot"></i><span id="scope-label">Sample page · not sharing</span></span><button class="capture-button" id="share-screen-button" type="button" aria-pressed="false"><span aria-hidden="true">◉</span><span id="share-screen-label">Share screen</span></button></div>
+            <div class="browser" id="browser-preview">
+              <video class="screen-preview" id="screen-preview" autoplay muted playsinline aria-label="Local-only screen preview" hidden></video>
               <div class="browser-chrome"><i></i><i></i><i></i><span class="browser-url">learn.northstar.edu / thermal-systems</span></div>
               <article class="webpage">
                 <div class="web-kicker">Engineering · Thermal systems</div>
@@ -380,19 +386,20 @@
                 <div class="web-figure"><div class="figure-block"></div><div class="figure-lines"><i></i><i></i><i></i></div></div>
               </article>
             </div>
+            <div class="preview-callout" id="preview-callout" role="status" hidden><span aria-hidden="true">◈</span><span><strong>Preview only.</strong> Your screen stays in this browser; it is not uploaded, stored, or analyzed. Sample Q&amp;A is paused while sharing.</span></div>
           </div>
           <aside class="assist-pane" aria-label="Vela chat">
-            <div class="assistant-top"><div class="assistant-name"><span class="assistant-symbol" aria-hidden="true">✳</span><span>Vela<small>Here with the page you shared</small></span></div><button class="icon-button" id="new-chat" type="button" aria-label="Start a new question" title="New question">＋</button></div>
-            <div class="context-pill"><span class="context-icon" aria-hidden="true">▤</span><span><strong>Context:</strong> Northstar Learning · paragraph 2</span></div>
+            <div class="assistant-top"><div class="assistant-name"><span class="assistant-symbol" aria-hidden="true">✳</span><span>Vela<small>Prototype · sample answers only</small></span></div><button class="icon-button" id="new-chat" type="button" aria-label="Start a new question" title="New question">＋</button></div>
+            <div class="context-pill"><span class="context-icon" aria-hidden="true">▤</span><span><strong>Context:</strong> <span id="context-status">Northstar Learning · sample paragraph 2</span></span></div>
             <div class="messages" id="messages" aria-live="polite" aria-label="Conversation">
               <div class="msg user">What is a heat exchanger?</div>
               <div class="msg assistant">It’s a device that <strong>moves heat from one fluid to another without mixing them</strong>. Here, warm water carries heat away from the processor and passes it to a separate cooling circuit — like two lanes exchanging warmth through a shared wall.<br><span class="source-chip"><i></i> From paragraph 2 on this page</span></div>
             </div>
             <div class="starter"><span class="starter-label">Try asking</span><button type="button" data-prompt="Can you explain this in simpler words?">Explain this more simply</button><button type="button" data-prompt="Why use liquid instead of air?">Why use liquid instead of air?</button></div>
             <form class="composer" id="question-form">
-              <div class="composer-box"><textarea id="question-input" rows="2" aria-label="Ask about the shared screen" placeholder="Ask about what you’re looking at…"></textarea><div class="composer-tools"><span class="composer-hint">Enter to ask · answers are sample text</span><button class="send-button" type="submit" aria-label="Send question">↑</button></div></div>
+              <div class="composer-box"><textarea id="question-input" rows="2" aria-label="Ask about the sample screen" placeholder="Ask about the sample page…"></textarea><div class="composer-tools"><span class="composer-hint" id="composer-hint">Sample answers only · no AI model connected</span><button class="send-button" type="submit" aria-label="Send question">↑</button></div></div>
             </form>
-            <div class="demo-disclaimer">Demo only · no live capture or AI model connected</div>
+            <div class="demo-disclaimer" id="demo-disclaimer">Sample Q&amp;A only · no AI model connected</div>
           </aside>
         </div>
         <p class="footer-note">The on-screen page and conversation are sample content. Use the controls to explore the flow.</p>
@@ -417,7 +424,7 @@
             <div class="panel-head"><div><h2 id="settings-heading">Privacy &amp; preferences</h2><p>Thoughtful defaults, yours to change.</p></div></div>
             <div class="settings-group">
               <p class="settings-label">Screen access</p>
-              <div class="setting-row"><span><strong>Pause visual context</strong><small>Stop sharing until you turn it back on.</small></span><button class="switch" type="button" role="switch" aria-checked="false" aria-label="Pause visual context" data-toggle="pause"></button></div>
+              <div class="setting-row"><span><strong>Pause screen sharing</strong><small>Stop the live preview until you share again.</small></span><button class="switch" type="button" role="switch" aria-checked="false" aria-label="Pause screen sharing" data-toggle="pause"></button></div>
               <p class="settings-label">Your history</p>
               <div class="setting-row"><span><strong>Save conversations</strong><small>Keep your questions in this device’s history.</small></span><button class="switch" type="button" role="switch" aria-checked="true" aria-label="Save conversations" data-toggle="save"></button></div>
               <div class="setting-row"><span><strong>Keep history for</strong><small>Older conversations are removed automatically.</small></span><select class="retention-select" id="retention"><option>30 days</option><option>7 days</option><option>Never save</option></select></div>
@@ -425,7 +432,7 @@
             </div>
           </section>
         </div>
-        <div class="library-note"><span aria-hidden="true">◈</span><span><b>In a real app:</b> access and retention would follow your device’s OS permissions. Every control shown here is a prototype interaction, not a system setting.</span></div>
+        <div class="library-note"><span aria-hidden="true">◈</span><span><b>Browser-controlled access.</b> The browser’s native sharing picker decides what is shared. This prototype keeps the preview in the page and has no upload or vision-model connection.</span></div>
         <p class="footer-note">This history is example content. Search, preference toggles, and clearing activity are interactive.</p>
       </section>
     </main>
@@ -437,7 +444,9 @@
       const screenLabels = { setup: "01 / 03", chat: "02 / 03", library: "03 / 03" };
       const toast = document.getElementById("toast");
       let toastTimer;
-      let currentScope = "tab";
+      let screenStream = null;
+      let isStartingShare = false;
+      let sharedSurface = "screen";
 
       function notify(message) {
         toast.textContent = message;
@@ -448,6 +457,7 @@
 
       function showScreen(name) {
         if (!screens.includes(name)) return;
+        if (name !== "chat" && screenStream) stopScreenShare("Sharing stopped when you left the screen view.");
         screens.forEach((screen) => {
           document.getElementById(`screen-${screen}`).hidden = screen !== name;
         });
@@ -471,27 +481,98 @@
         else notify("Vela will only see context when you choose to ask.");
       }));
 
-      let connected = false;
-      document.getElementById("connect-button").addEventListener("click", (event) => {
-        connected = !connected;
-        document.getElementById("permission-status").textContent = connected ? "Demo connected · no live screen capture" : "Not connected · choose a tab or area";
-        document.getElementById("connect-button").textContent = connected ? "Disconnect" : "Set up";
-        document.getElementById("permission-title").textContent = connected ? "Screen sharing · demo" : "Screen sharing";
-        notify(connected ? "Demo permission connected. Your actual screen is not being captured." : "Demo permission disconnected.");
-      });
+      const screenPreview = document.getElementById("screen-preview");
+      const browserPreview = document.getElementById("browser-preview");
+      const shareButtons = [document.getElementById("connect-button"), document.getElementById("share-screen-button")];
+      const permissionStatus = document.getElementById("permission-status");
+      const contextStatus = document.getElementById("context-status");
+      const questionForm = document.getElementById("question-form");
+      const questionControls = [
+        ...questionForm.querySelectorAll("textarea, button[type=submit]"),
+        ...document.querySelectorAll(".starter [data-prompt]"),
+        document.getElementById("new-chat")
+      ];
 
-      document.querySelectorAll("[data-scope]").forEach((button) => button.addEventListener("click", () => {
-        currentScope = button.dataset.scope;
-        document.querySelectorAll("[data-scope]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
-        document.getElementById("scope-label").textContent = currentScope === "tab" ? "Sharing this tab" : "Area selection · simulated";
-        notify(currentScope === "tab" ? "Vela is focused on this sample tab." : "Area selection is simulated in this prototype.");
+      function setSharingUi(active) {
+        shareButtons.forEach((button) => {
+          button.disabled = isStartingShare;
+          button.setAttribute("aria-pressed", String(active));
+          if (button.id === "share-screen-button") document.getElementById("share-screen-label").textContent = active ? "Stop sharing" : "Share screen";
+          else button.textContent = isStartingShare ? "Choose source…" : active ? "Stop sharing" : "Share screen";
+        });
+        document.getElementById("permission-title").textContent = active ? "Browser screen share · active" : "Browser screen share";
+        permissionStatus.textContent = isStartingShare ? "Waiting for your browser choice…" : active ? `Sharing ${sharedSurface} · local preview only` : "Off · choose a tab, window, or screen";
+        document.getElementById("scope-label").textContent = active ? `Live ${sharedSurface} preview · local only` : "Sample page · not sharing";
+        contextStatus.textContent = active ? "Live preview only · not analyzed" : "Northstar Learning · sample paragraph 2";
+        document.getElementById("preview-callout").hidden = !active;
+        browserPreview.classList.toggle("is-sharing", active);
+        document.querySelector(".browser-chrome").hidden = active;
+        document.querySelector(".webpage").hidden = active;
+        screenPreview.hidden = !active;
+        document.getElementById("composer-hint").textContent = active ? "Paused during sharing · sample only" : "Sample answers only · no AI model connected";
+        document.getElementById("demo-disclaimer").textContent = active ? "Preview only · no screen analysis or AI model connected" : "Sample Q&A only · no AI model connected";
+        questionControls.forEach((control) => { control.disabled = active || isStartingShare; });
+        document.querySelectorAll("[data-toggle=pause]").forEach((button) => button.setAttribute("aria-checked", "false"));
+      }
+
+      function stopScreenShare(message = "Screen sharing stopped. No screen data was kept.") {
+        const stream = screenStream;
+        screenStream = null;
+        if (stream) stream.getTracks().forEach((track) => track.stop());
+        screenPreview.pause();
+        screenPreview.srcObject = null;
+        sharedSurface = "screen";
+        setSharingUi(false);
+        if (message) notify(message);
+      }
+
+      async function startScreenShare(navigateToChat = false) {
+        if (screenStream || isStartingShare) return;
+        const getDisplayMedia = navigator.mediaDevices?.getDisplayMedia;
+        if (!getDisplayMedia) {
+          notify("Screen sharing is not available here. Open this page in a supported browser over HTTPS.");
+          return;
+        }
+        isStartingShare = true;
+        setSharingUi(false);
+        try {
+          const stream = await getDisplayMedia.call(navigator.mediaDevices, { video: true, audio: false });
+          const videoTrack = stream.getVideoTracks()[0];
+          if (!videoTrack) {
+            stream.getTracks().forEach((track) => track.stop());
+            throw new Error("No video track was returned by the browser.");
+          }
+          screenStream = stream;
+          const surfaceNames = { browser: "tab", window: "window", monitor: "screen" };
+          sharedSurface = surfaceNames[videoTrack.getSettings?.().displaySurface] || "screen";
+          videoTrack.addEventListener("ended", () => {
+            if (screenStream === stream) stopScreenShare("Sharing ended in your browser. No screen data was kept.");
+          }, { once: true });
+          screenPreview.srcObject = stream;
+          setSharingUi(true);
+          await screenPreview.play().catch(() => {});
+          if (navigateToChat) showScreen("chat");
+          notify("Screen preview is live in this page only. It is not uploaded or analyzed.");
+        } catch (error) {
+          const cancelled = error?.name === "NotAllowedError" || error?.name === "AbortError";
+          notify(cancelled ? "Sharing cancelled. Nothing is being shared." : "Could not start sharing. Check browser support and try again.");
+        } finally {
+          isStartingShare = false;
+          setSharingUi(Boolean(screenStream));
+        }
+      }
+
+      shareButtons.forEach((button) => button.addEventListener("click", () => {
+        if (screenStream) stopScreenShare();
+        else startScreenShare(button.id === "connect-button");
       }));
-
-      document.getElementById("capture-button").addEventListener("click", () => {
-        const label = document.getElementById("capture-label");
-        label.textContent = "Captured · just now";
-        document.getElementById("scope-label").textContent = currentScope === "tab" ? "Tab context ready" : "Selected area ready";
-        notify("Sample context refreshed. No screenshot was taken.");
+      window.addEventListener("pagehide", () => {
+        const stream = screenStream;
+        screenStream = null;
+        if (stream) stream.getTracks().forEach((track) => track.stop());
+        screenPreview.pause();
+        screenPreview.srcObject = null;
+        setSharingUi(false);
       });
 
       const messages = document.getElementById("messages");
@@ -522,6 +603,7 @@
 
       document.getElementById("question-form").addEventListener("submit", (event) => {
         event.preventDefault();
+        if (screenStream) return;
         const question = questionInput.value.trim();
         if (!question) { questionInput.focus(); return; }
         addMessage(question);
@@ -575,6 +657,10 @@
         const next = button.getAttribute("aria-checked") !== "true";
         button.setAttribute("aria-checked", String(next));
         const label = button.getAttribute("aria-label");
+        if (button.dataset.toggle === "pause" && next && screenStream) {
+          stopScreenShare(null);
+          button.setAttribute("aria-checked", "true");
+        }
         notify(`${label} ${next ? "enabled" : "disabled"} for this prototype.`);
       }));
       document.getElementById("clear-history").addEventListener("click", () => {
