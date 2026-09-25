@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f3ee">
+  <meta name="description" content="An interactive concept for a privacy-first assistant that helps explain what is on your screen.">
+  <title>Vela — Screen-aware assistant concept</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202a2a;
+      --muted: #6b7775;
+      --quiet: #97a19e;
+      --line: #e4e7e1;
+      --paper: #fbfbf8;
+      --canvas: #f1f2ed;
+      --green: #b9d64a;
+      --green-dark: #718b1e;
+      --forest: #253d37;
+      --mint: #eef2df;
+      --blue: #d8e7e3;
+      --white: #fff;
+      --shadow: 0 22px 60px rgba(32, 42, 42, .09), 0 3px 12px rgba(32, 42, 42, .04);
+      --radius: 18px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; background: var(--canvas); color: var(--ink); }
+    button, input, textarea { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid rgba(113, 139, 30, .35); outline-offset: 2px; }
+    .app { display: flex; min-height: 100vh; max-width: 1680px; margin: 0 auto; background: var(--paper); }
+    .rail { display: flex; flex: 0 0 240px; flex-direction: column; padding: 28px 16px 18px; border-right: 1px solid var(--line); background: #f8f8f4; }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 12px; }
+    .brand-mark { position: relative; display: grid; width: 35px; height: 35px; place-items: center; border-radius: 12px; background: var(--forest); }
+    .brand-mark::before { content: ""; width: 15px; height: 15px; border: 2px solid var(--green); border-radius: 50% 50% 50% 12%; transform: rotate(-42deg); }
+    .brand-name { font-size: 17px; font-weight: 760; letter-spacing: .14em; }
+    .brand-sub { margin-top: 3px; color: var(--quiet); font-size: 9px; font-weight: 700; letter-spacing: .16em; }
+    .rail-label { margin: 39px 12px 12px; color: #9aa49f; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    .nav { display: grid; gap: 6px; }
+    .nav-button { display: flex; width: 100%; align-items: center; gap: 12px; padding: 11px 12px; border: 0; border-radius: 12px; background: transparent; color: #737e7a; cursor: pointer; text-align: left; transition: color .18s, background .18s, transform .18s; }
+    .nav-button:hover { background: #eeefe9; color: var(--ink); }
+    .nav-button[aria-current="page"] { background: var(--white); color: var(--ink); box-shadow: 0 3px 12px rgba(42, 52, 46, .06); }
+    .nav-icon { display: grid; width: 25px; height: 25px; place-items: center; border: 1px solid #dfe4d8; border-radius: 8px; color: #6d7c69; font-size: 11px; font-weight: 750; }
+    .nav-button[aria-current="page"] .nav-icon { border-color: #d9e3b6; background: #f3f7e7; color: #70891f; }
+    .nav-copy { display: grid; gap: 2px; }
+    .nav-title { font-size: 12px; font-weight: 650; }
+    .nav-step { color: #9aa49f; font-size: 10px; }
+    .rail-spacer { flex: 1; }
+    .privacy-card { margin: 0 3px 16px; padding: 15px 13px; border: 1px solid #e2e7d7; border-radius: 15px; background: #f2f5e9; }
+    .privacy-heading { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; }
+    .privacy-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green-dark); box-shadow: 0 0 0 4px rgba(185, 214, 74, .2); }
+    .privacy-card p { margin: 9px 0 0; color: #77816d; font-size: 10px; line-height: 1.55; }
+    .profile { display: flex; align-items: center; gap: 10px; padding: 13px 9px 0; border-top: 1px solid var(--line); }
+    .avatar { display: grid; width: 31px; height: 31px; place-items: center; border-radius: 50%; background: #e4e8dc; color: #58634f; font-size: 10px; font-weight: 750; }
+    .profile strong { display: block; font-size: 11px; font-weight: 650; }
+    .profile span { display: block; margin-top: 3px; color: var(--quiet); font-size: 9px; }
+    .main { flex: 1; min-width: 0; padding: 30px clamp(24px, 4vw, 64px) 36px; }
+    .topline { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 34px; margin-bottom: 31px; }
+    .prototype-badge { display: inline-flex; align-items: center; gap: 8px; color: #758078; font-size: 10px; font-weight: 650; letter-spacing: .035em; }
+    .prototype-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #d5aa47; }
+    .progress { display: flex; align-items: center; gap: 9px; color: #7d8883; font-size: 10px; font-weight: 650; }
+    .progress-bars { display: flex; gap: 4px; }
+    .progress-bars i { display: block; width: 19px; height: 3px; border-radius: 4px; background: #e3e6de; }
+    .progress-bars i.active { background: var(--green-dark); }
+    .screen { animation: appear .22s ease-out; }
+    @keyframes appear { from { opacity: .65; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .eyebrow { margin: 0 0 11px; color: #85908b; font-size: 10px; font-weight: 730; letter-spacing: .15em; text-transform: uppercase; }
+    h1 { max-width: 780px; margin: 0; font-size: clamp(29px, 3.15vw, 43px); font-weight: 580; letter-spacing: -.05em; line-height: 1.12; }
+    .lede { max-width: 620px; margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
+    .setup-grid { display: grid; grid-template-columns: minmax(350px, 1.1fr) minmax(330px, .9fr); gap: clamp(25px, 5vw, 74px); align-items: center; max-width: 1120px; margin-top: 36px; }
+    .setup-copy { max-width: 550px; }
+    .setup-kicker { display: flex; align-items: center; gap: 9px; margin-bottom: 20px; color: #70851c; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .spark { display: grid; width: 25px; height: 25px; place-items: center; border-radius: 9px; background: var(--mint); color: #788e28; font-size: 13px; }
+    h2 { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -.035em; }
+    .setup-intro { margin: 9px 0 23px; color: var(--muted); font-size: 12px; line-height: 1.65; }
+    .field-label { margin: 0 0 10px; color: #5f6c66; font-size: 10px; font-weight: 720; letter-spacing: .04em; }
+    .mode-list { display: grid; gap: 8px; }
+    .mode-option { display: flex; align-items: flex-start; gap: 11px; width: 100%; padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: #fff; cursor: pointer; text-align: left; transition: border-color .18s, background .18s, box-shadow .18s; }
+    .mode-option:hover { border-color: #cbd6ad; }
+    .mode-option[aria-pressed="true"] { border-color: #a4bb51; background: #fafcf4; box-shadow: 0 0 0 2px rgba(185, 214, 74, .13); }
+    .radio-mark { display: grid; flex: 0 0 16px; width: 16px; height: 16px; margin-top: 1px; place-items: center; border: 1.5px solid #c8d0c3; border-radius: 50%; }
+    .mode-option[aria-pressed="true"] .radio-mark { border-color: #879f31; }
+    .mode-option[aria-pressed="true"] .radio-mark::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #879f31; }
+    .mode-text { display: grid; flex: 1; gap: 3px; }
+    .mode-text strong { font-size: 11px; font-weight: 680; }
+    .mode-text small { color: #84908a; font-size: 10px; line-height: 1.5; }
+    .mode-tag { margin-left: 4px; padding: 4px 6px; border-radius: 20px; background: #f2f3ef; color: #7c8780; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+    .permission-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 17px; padding: 13px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .permission-copy { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .permission-icon { display: grid; flex: 0 0 29px; width: 29px; height: 29px; place-items: center; border-radius: 9px; background: #edf1e7; color: #778b2d; font-size: 12px; }
+    .permission-copy strong { display: block; font-size: 10px; font-weight: 700; }
+    .permission-copy small { display: block; margin-top: 3px; color: var(--quiet); font-size: 9px; }
+    .text-button { padding: 7px 10px; border: 1px solid #dfe4d8; border-radius: 9px; background: white; color: #5f6f51; font-size: 9px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .text-button:hover { border-color: #b6c783; background: #fafcf5; }
+    .privacy-note { display: flex; align-items: flex-start; gap: 8px; margin: 13px 0 20px; color: #7b867e; font-size: 10px; line-height: 1.55; }
+    .privacy-note b { color: #61732d; font-weight: 700; }
+    .button-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+    .primary { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 43px; padding: 0 17px; border: 0; border-radius: 11px; background: var(--forest); color: white; font-size: 11px; font-weight: 700; cursor: pointer; transition: transform .16s, background .16s; }
+    .primary:hover { transform: translateY(-1px); background: #314e45; }
+    .primary:active { transform: translateY(0); }
+    .primary .arrow { color: var(--green); font-size: 15px; }
+    .secondary { min-height: 39px; padding: 0 13px; border: 1px solid var(--line); border-radius: 10px; background: white; color: #66726c; font-size: 10px; font-weight: 650; cursor: pointer; }
+    .secondary:hover { background: #f7f8f3; }
+    .setup-visual { position: relative; min-height: 372px; padding: 17px; border: 1px solid #e1e5dd; border-radius: 21px; background: #f0f2eb; overflow: hidden; }
+    .setup-visual::before { position: absolute; content: ""; width: 260px; height: 260px; top: -129px; right: -66px; border: 1px solid rgba(146, 163, 107, .14); border-radius: 50%; box-shadow: 0 0 0 28px rgba(146, 163, 107, .045), 0 0 0 57px rgba(146, 163, 107, .04); }
+    .visual-label { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; margin: 3px 2px 13px; color: #818c85; font-size: 9px; font-weight: 680; letter-spacing: .1em; text-transform: uppercase; }
+    .visual-label span:last-child { color: #a0a99e; letter-spacing: .04em; text-transform: none; }
+    .mini-screen { position: relative; z-index: 1; min-height: 274px; padding: 14px; border: 1px solid #dfe4dc; border-radius: 13px; background: #fff; box-shadow: 0 9px 24px rgba(50, 61, 52, .055); }
+    .mini-toolbar { display: flex; gap: 4px; align-items: center; height: 14px; margin-bottom: 17px; }
+    .mini-toolbar i { width: 5px; height: 5px; border-radius: 50%; background: #d4dbd1; }
+    .mini-address { width: 57%; height: 13px; margin-left: 10px; border-radius: 5px; background: #f0f2ed; }
+    .mini-label { width: 100px; height: 8px; margin-bottom: 14px; border-radius: 4px; background: #e7eddb; }
+    .mini-title { width: 84%; height: 17px; margin-bottom: 7px; border-radius: 4px; background: #dce4d2; }
+    .mini-title.short { width: 56%; margin-bottom: 17px; }
+    .mini-lines { display: grid; gap: 7px; margin-bottom: 16px; }
+    .mini-lines i { width: 94%; height: 5px; border-radius: 5px; background: #edf0eb; }
+    .mini-lines i:nth-child(2) { width: 86%; }
+    .mini-lines i:nth-child(3) { width: 72%; }
+    .mini-columns { display: grid; grid-template-columns: 1fr .66fr; gap: 13px; }
+    .mini-graphic { min-height: 76px; border-radius: 8px; background: linear-gradient(145deg, #e1e9d7, #f2f5e9); }
+    .mini-copy { display: grid; align-content: start; gap: 7px; padding-top: 3px; }
+    .mini-copy i { width: 100%; height: 5px; border-radius: 5px; background: #edf0eb; }
+    .mini-copy i:last-child { width: 64%; }
+    .float-chip { position: absolute; z-index: 2; right: 26px; bottom: 29px; display: flex; align-items: center; gap: 9px; padding: 11px 13px; border: 1px solid #e1e7d5; border-radius: 12px; background: rgba(255,255,255,.96); box-shadow: 0 10px 28px rgba(45, 58, 44, .12); }
+    .float-icon { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 8px; background: var(--forest); color: var(--green); font-size: 12px; }
+    .float-chip strong { display: block; font-size: 9px; font-weight: 700; }
+    .float-chip small { display: block; margin-top: 3px; color: #88928b; font-size: 8px; }
+    .visual-caption { position: absolute; right: 19px; bottom: 11px; color: #99a39b; font-size: 8px; }
+
+    /* Screen two: contextual ask */
+    .chat-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+    .chat-head .lede { margin-top: 7px; }
+    .scope-controls { display: flex; align-items: center; gap: 6px; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: white; }
+    .scope-button { padding: 7px 10px; border: 0; border-radius: 8px; background: transparent; color: #7b8780; font-size: 9px; font-weight: 650; cursor: pointer; }
+    .scope-button[aria-pressed="true"] { background: #eef2e4; color: #61752a; }
+    .workbench { display: grid; grid-template-columns: minmax(390px, 1.18fr) minmax(330px, .82fr); max-width: 1160px; min-height: 488px; border: 1px solid #e1e5de; border-radius: 17px; background: #f7f8f4; overflow: hidden; box-shadow: 0 8px 26px rgba(40, 53, 44, .035); }
+    .screen-pane { position: relative; min-width: 0; padding: 17px; border-right: 1px solid #e3e7e0; }
+    .pane-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .pane-top-label { display: flex; align-items: center; gap: 7px; color: #67736d; font-size: 9px; font-weight: 680; }
+    .green-dot { width: 6px; height: 6px; border-radius: 50%; background: #93ad31; }
+    .capture-button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid #dce2d8; border-radius: 8px; background: #fff; color: #71806d; font-size: 9px; font-weight: 650; cursor: pointer; }
+    .capture-button:hover { border-color: #adc06a; }
+    .browser { position: relative; min-height: 396px; border: 1px solid #dfe4de; border-radius: 12px; background: white; overflow: hidden; }
+    .browser-chrome { display: flex; align-items: center; gap: 5px; height: 37px; padding: 0 12px; border-bottom: 1px solid #edf0eb; background: #fbfcfa; }
+    .browser-chrome i { width: 6px; height: 6px; border-radius: 50%; background: #d7dcd5; }
+    .browser-url { display: flex; align-items: center; width: min(63%, 300px); height: 20px; margin-left: 9px; padding: 0 9px; border-radius: 6px; background: #f0f2ef; color: #9aa39d; font-size: 8px; }
+    .webpage { padding: 23px clamp(17px, 2.4vw, 32px) 20px; }
+    .web-kicker { color: #7b8e35; font-size: 8px; font-weight: 730; letter-spacing: .15em; text-transform: uppercase; }
+    .webpage h3 { max-width: 430px; margin: 9px 0 8px; font-size: clamp(20px, 2vw, 26px); font-weight: 590; letter-spacing: -.045em; line-height: 1.15; }
+    .web-meta { margin-bottom: 17px; color: #a1aaa3; font-size: 8px; }
+    .web-copy { max-width: 475px; color: #59645f; font-size: 10px; line-height: 1.7; }
+    .web-copy p { margin: 0 0 12px; }
+    .selected-copy { position: relative; padding: 7px 9px; border-radius: 7px; background: #f3f7e9; box-shadow: inset 2px 0 #aec346; }
+    .selection-tag { display: inline-flex; align-items: center; gap: 5px; margin-top: 2px; padding: 5px 7px; border: 1px solid #e4e9d9; border-radius: 7px; background: #fff; color: #74854a; font-size: 8px; font-weight: 660; }
+    .selection-tag i { width: 5px; height: 5px; border-radius: 50%; background: #a3ba48; }
+    .web-figure { display: grid; grid-template-columns: 1fr .8fr; gap: 11px; max-width: 465px; margin-top: 13px; }
+    .figure-block { min-height: 76px; border-radius: 8px; background: linear-gradient(138deg, #e5ecdf 5%, #f5f4e9 60%, #e8ede3); }
+    .figure-lines { display: grid; align-content: center; gap: 7px; }
+    .figure-lines i { height: 5px; border-radius: 5px; background: #edf0eb; }
+    .figure-lines i:nth-child(2) { width: 87%; }
+    .figure-lines i:nth-child(3) { width: 62%; }
+    .assist-pane { display: flex; min-width: 0; flex-direction: column; background: #fff; }
+    .assistant-top { display: flex; align-items: center; justify-content: space-between; min-height: 55px; padding: 0 15px; border-bottom: 1px solid #edf0eb; }
+    .assistant-name { display: flex; align-items: center; gap: 9px; font-size: 10px; font-weight: 720; }
+    .assistant-symbol { display: grid; width: 27px; height: 27px; place-items: center; border-radius: 9px; background: var(--forest); color: var(--green); font-size: 13px; }
+    .assistant-name small { display: block; margin-top: 3px; color: #9aa49d; font-size: 8px; font-weight: 500; }
+    .icon-button { display: grid; width: 29px; height: 29px; place-items: center; border: 1px solid #e8ebe5; border-radius: 9px; background: white; color: #7f8a83; cursor: pointer; }
+    .icon-button:hover { background: #f6f8f1; }
+    .context-pill { display: flex; align-items: center; gap: 7px; margin: 13px 14px 4px; padding: 8px 9px; border: 1px solid #ebeedf; border-radius: 9px; background: #fafbf7; color: #78836f; font-size: 8px; }
+    .context-pill strong { color: #687735; font-weight: 700; }
+    .context-icon { color: #86953f; font-size: 11px; }
+    .messages { display: flex; flex: 1; flex-direction: column; gap: 12px; min-height: 205px; max-height: 273px; padding: 13px 14px 10px; overflow: auto; }
+    .msg { max-width: 94%; font-size: 10px; line-height: 1.65; }
+    .msg.user { align-self: flex-end; padding: 9px 11px; border-radius: 11px 11px 3px 11px; background: #eef2e4; color: #46503b; }
+    .msg.assistant { align-self: flex-start; padding: 0; color: #4d5a54; }
+    .msg.assistant .source-chip { display: inline-flex; align-items: center; gap: 5px; margin-top: 7px; padding: 5px 7px; border: 1px solid #e8ece3; border-radius: 7px; color: #7b866a; font-size: 8px; }
+    .source-chip i { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #a5bc4d; }
+    .msg.assistant strong { color: #313e36; font-weight: 720; }
+    .starter { display: grid; gap: 5px; padding: 0 14px 10px; }
+    .starter-label { color: #a0a9a2; font-size: 8px; font-weight: 650; }
+    .starter button { width: fit-content; padding: 5px 8px; border: 1px solid #e7ebe4; border-radius: 7px; background: white; color: #6d796f; font-size: 8px; cursor: pointer; }
+    .starter button:hover { border-color: #bdcc8b; background: #fcfdf8; }
+    .composer { padding: 0 12px 12px; }
+    .composer-box { padding: 9px 10px 7px; border: 1px solid #e2e7df; border-radius: 11px; background: #fff; transition: border .18s, box-shadow .18s; }
+    .composer-box:focus-within { border-color: #b4c773; box-shadow: 0 0 0 3px rgba(185, 214, 74, .13); }
+    .composer textarea { display: block; width: 100%; min-height: 36px; max-height: 80px; padding: 0; resize: vertical; border: 0; outline: 0; color: var(--ink); font-size: 9px; line-height: 1.5; }
+    .composer textarea::placeholder { color: #a3aca5; }
+    .composer-tools { display: flex; align-items: center; justify-content: space-between; }
+    .composer-hint { color: #9ca69e; font-size: 8px; }
+    .send-button { display: grid; width: 27px; height: 27px; place-items: center; border: 0; border-radius: 8px; background: var(--forest); color: var(--green); font-size: 14px; cursor: pointer; }
+    .send-button:hover { background: #354f46; }
+    .demo-disclaimer { padding: 0 14px 11px; color: #a0a8a0; font-size: 8px; text-align: center; }
+
+    /* Screen three: history and settings */
+    .library-layout { display: grid; grid-template-columns: minmax(380px, 1.2fr) minmax(290px, .8fr); gap: 17px; max-width: 1120px; margin-top: 25px; }
+    .history-panel, .settings-panel { border: 1px solid var(--line); border-radius: 15px; background: #fff; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 17px 18px; border-bottom: 1px solid #edf0eb; }
+    .panel-head h2 { font-size: 14px; letter-spacing: -.02em; }
+    .panel-head p { margin: 5px 0 0; color: #9aa49d; font-size: 9px; }
+    .search-box { width: 126px; padding: 7px 9px; border: 1px solid #e7ebe5; border-radius: 8px; outline: 0; background: #fcfdfa; color: var(--ink); font-size: 9px; }
+    .search-box::placeholder { color: #a5aea7; }
+    .history-list { padding: 5px 14px 12px; }
+    .history-row { display: grid; grid-template-columns: 33px minmax(0, 1fr) auto; align-items: center; gap: 11px; padding: 13px 4px; border-bottom: 1px solid #f0f2ed; cursor: pointer; }
+    .history-row:last-child { border-bottom: 0; }
+    .history-row:hover .history-title { color: #647b24; }
+    .history-icon { display: grid; width: 31px; height: 31px; place-items: center; border-radius: 9px; background: #f0f3e8; color: #87973e; font-size: 11px; }
+    .history-title { display: block; margin-bottom: 4px; color: #3e4a44; font-size: 10px; font-weight: 670; transition: color .15s; }
+    .history-meta { color: #98a29b; font-size: 8px; }
+    .history-time { color: #a0aaa2; font-size: 8px; white-space: nowrap; }
+    .empty-search { display: none; padding: 22px 10px; color: #9aa49d; font-size: 10px; text-align: center; }
+    .settings-panel { align-self: start; overflow: hidden; }
+    .settings-group { padding: 6px 17px 13px; }
+    .settings-label { margin: 12px 0 7px; color: #9aa49d; font-size: 8px; font-weight: 730; letter-spacing: .12em; text-transform: uppercase; }
+    .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid #f0f2ed; }
+    .setting-row:last-child { border-bottom: 0; }
+    .setting-row strong { display: block; font-size: 9px; font-weight: 680; }
+    .setting-row small { display: block; max-width: 210px; margin-top: 4px; color: #98a29b; font-size: 8px; line-height: 1.45; }
+    .switch { position: relative; flex: 0 0 34px; width: 34px; height: 20px; padding: 0; border: 0; border-radius: 20px; background: #d7ddd5; cursor: pointer; transition: background .18s; }
+    .switch::after { position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: white; box-shadow: 0 1px 3px rgba(0,0,0,.13); content: ""; transition: transform .18s; }
+    .switch[aria-checked="true"] { background: #879e36; }
+    .switch[aria-checked="true"]::after { transform: translateX(14px); }
+    .retention-select { max-width: 105px; padding: 6px 7px; border: 1px solid #e6eae2; border-radius: 7px; background: #fff; color: #707c73; font-size: 8px; }
+    .danger-link { padding: 7px 0 0; border: 0; background: transparent; color: #a06e60; font-size: 9px; font-weight: 650; cursor: pointer; }
+    .danger-link:hover { color: #804d3f; text-decoration: underline; }
+    .library-note { display: flex; align-items: center; gap: 8px; max-width: 1120px; margin-top: 13px; padding: 11px 13px; border: 1px solid #e7eadf; border-radius: 10px; background: #f7f8f2; color: #818a7c; font-size: 9px; line-height: 1.5; }
+    .library-note b { color: #66763b; }
+    .toast { position: fixed; right: 24px; bottom: 24px; z-index: 10; max-width: min(390px, calc(100vw - 36px)); padding: 12px 16px; border: 1px solid #405b4f; border-radius: 11px; background: #283e36; box-shadow: var(--shadow); color: #f7f9f2; font-size: 11px; line-height: 1.5; opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s, transform .2s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .footer-note { margin-top: 21px; color: #a1aaa3; font-size: 8px; }
+    [hidden] { display: none !important; }
+    @media (min-width: 1500px) { .main { padding-right: 76px; padding-left: 76px; } }
+    @media (max-width: 980px) {
+      .rail { flex-basis: 205px; }
+      .main { padding: 25px 26px 30px; }
+      .setup-grid { grid-template-columns: minmax(320px, 1fr) minmax(270px, .8fr); gap: 24px; }
+      .workbench { grid-template-columns: minmax(300px, 1fr) minmax(285px, .9fr); }
+      .library-layout { grid-template-columns: minmax(330px, 1.1fr) minmax(260px, .9fr); }
+    }
+    @media (max-width: 760px) {
+      .app { display: block; min-height: 100vh; padding-bottom: 68px; }
+      .rail { position: fixed; z-index: 8; right: 0; bottom: 0; left: 0; display: flex; flex-direction: row; align-items: center; justify-content: space-around; height: 62px; padding: 7px 10px; border-top: 1px solid var(--line); border-right: 0; background: rgba(250, 250, 247, .96); backdrop-filter: blur(16px); }
+      .brand, .rail-label, .rail-spacer, .privacy-card, .profile { display: none; }
+      .nav { display: flex; width: 100%; justify-content: space-around; gap: 4px; }
+      .nav-button { width: auto; min-width: 90px; justify-content: center; gap: 7px; padding: 8px; }
+      .nav-icon { width: 24px; height: 24px; }
+      .nav-title { font-size: 9px; }
+      .nav-step { display: none; }
+      .nav-copy { gap: 0; }
+      .main { padding: 20px 18px 30px; }
+      .topline { margin-bottom: 23px; }
+      .setup-grid { grid-template-columns: 1fr; margin-top: 26px; }
+      .setup-visual { min-height: 310px; }
+      .mini-screen { min-height: 220px; }
+      .chat-head { align-items: flex-start; flex-direction: column; }
+      .workbench { grid-template-columns: 1fr; }
+      .screen-pane { border-right: 0; border-bottom: 1px solid #e3e7e0; }
+      .browser { min-height: 340px; }
+      .assist-pane { min-height: 410px; }
+      .messages { max-height: 230px; }
+      .library-layout { grid-template-columns: 1fr; }
+      .footer-note { padding-bottom: 5px; }
+    }
+    @media (max-width: 440px) {
+      .main { padding-right: 14px; padding-left: 14px; }
+      .prototype-badge { font-size: 9px; }
+      .progress { gap: 6px; font-size: 9px; }
+      .progress-bars i { width: 13px; }
+      h1 { font-size: 31px; }
+      .setup-visual { min-height: 285px; padding: 13px; }
+      .mini-screen { min-height: 212px; padding: 12px; }
+      .scope-controls { width: 100%; }
+      .scope-button { flex: 1; }
+      .pane-top { align-items: flex-start; gap: 9px; }
+      .capture-button { font-size: 8px; }
+      .screen-pane { padding: 12px; }
+      .webpage { padding: 20px 15px; }
+      .library-layout { margin-top: 19px; }
+      .panel-head { padding: 14px; }
+      .search-box { width: 104px; }
+      .history-list { padding-right: 11px; padding-left: 11px; }
+      .history-row { grid-template-columns: 29px minmax(0, 1fr) auto; gap: 8px; }
+      .history-icon { width: 28px; height: 28px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="rail" aria-label="Prototype navigation">
+      <div class="brand" aria-label="Vela">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span><span class="brand-name">VELA</span><span class="brand-sub">SCREEN COMPANION</span></span>
+      </div>
+      <p class="rail-label">Your workspace</p>
+      <nav class="nav" aria-label="Screens">
+        <button class="nav-button" type="button" data-screen="setup" aria-current="page">
+          <span class="nav-icon" aria-hidden="true">01</span><span class="nav-copy"><span class="nav-title">Get started</span><span class="nav-step">Set your boundaries</span></span>
+        </button>
+        <button class="nav-button" type="button" data-screen="chat">
+          <span class="nav-icon" aria-hidden="true">02</span><span class="nav-copy"><span class="nav-title">Ask Vela</span><span class="nav-step">Your screen, in context</span></span>
+        </button>
+        <button class="nav-button" type="button" data-screen="library">
+          <span class="nav-icon" aria-hidden="true">03</span><span class="nav-copy"><span class="nav-title">History &amp; settings</span><span class="nav-step">Keep control</span></span>
+        </button>
+      </nav>
+      <div class="rail-spacer"></div>
+      <div class="privacy-card"><div class="privacy-heading"><i class="privacy-dot"></i>Privacy is a feature</div><p>Vela only sees what you choose to share. Pause or clear your context any time.</p></div>
+      <div class="profile"><span class="avatar">A</span><span><strong>Your workspace</strong><span>Personal space</span></span></div>
+    </aside>
+
+    <main class="main">
+      <div class="topline">
+        <span class="prototype-badge">Interactive concept · simulated screen</span>
+        <span class="progress"><span id="progress-label">01 / 03</span><span class="progress-bars" aria-hidden="true"><i class="active"></i><i></i><i></i></span></span>
+      </div>
+
+      <section class="screen" id="screen-setup" aria-labelledby="setup-title">
+        <p class="eyebrow">01 &nbsp;·&nbsp; A thoughtful first step</p>
+        <h1 id="setup-title">A clearer way through your screen.</h1>
+        <p class="lede">Meet a small, helpful companion for the things you’re looking at. You decide what Vela can see, and when.</p>
+        <div class="setup-grid">
+          <div class="setup-copy">
+            <div class="setup-kicker"><span class="spark" aria-hidden="true">✳</span> Built around your choice</div>
+            <h2>Start with your boundaries.</h2>
+            <p class="setup-intro">Pick how you’d like to share context. You can change this later, and nothing is connected in this demo.</p>
+            <p class="field-label">HOW SHOULD VELA SEE YOUR SCREEN?</p>
+            <div class="mode-list" role="group" aria-label="Screen context mode">
+              <button class="mode-option" type="button" data-mode="ask" aria-pressed="true">
+                <span class="radio-mark" aria-hidden="true"></span><span class="mode-text"><strong>Only when I ask <span class="mode-tag">Recommended</span></strong><small>Share a tab or choose an area for one question.</small></span>
+              </button>
+              <button class="mode-option" type="button" data-mode="memory" aria-pressed="false">
+                <span class="radio-mark" aria-hidden="true"></span><span class="mode-text"><strong>Remember a little context</strong><small>Keep a short, searchable history on this device.</small></span>
+              </button>
+            </div>
+            <div class="permission-row">
+              <div class="permission-copy"><span class="permission-icon" aria-hidden="true">▧</span><span><strong id="permission-title">Screen sharing</strong><small id="permission-status">Not connected · choose a tab or area</small></span></div>
+              <button class="text-button" id="connect-button" type="button">Set up</button>
+            </div>
+            <p class="privacy-note"><span aria-hidden="true">◈</span><span><b>Clear by default.</b> You’ll always see when sharing is active. This prototype only simulates that permission.</span></p>
+            <div class="button-row"><button class="primary" type="button" data-go="chat">Continue to your screen <span class="arrow" aria-hidden="true">→</span></button><button class="secondary" type="button" data-go="library">See privacy controls</button></div>
+          </div>
+          <div class="setup-visual" aria-label="Illustration of a shared screen with a compact assistant">
+            <div class="visual-label"><span>When you ask, Vela is here</span><span>private by design</span></div>
+            <div class="mini-screen">
+              <div class="mini-toolbar"><i></i><i></i><i></i><span class="mini-address"></span></div>
+              <div class="mini-label"></div><div class="mini-title"></div><div class="mini-title short"></div>
+              <div class="mini-lines"><i></i><i></i><i></i></div>
+              <div class="mini-columns"><div class="mini-graphic"></div><div class="mini-copy"><i></i><i></i><i></i></div></div>
+            </div>
+            <div class="float-chip"><span class="float-icon" aria-hidden="true">✳</span><span><strong>Ask about this</strong><small>Only what you choose to share</small></span></div>
+            <span class="visual-caption">A preview · no live screen access</span>
+          </div>
+        </div>
+        <p class="footer-note">A concept prototype. Permission prompts and AI responses are simulated.</p>
+      </section>
+
+      <section class="screen" id="screen-chat" aria-labelledby="chat-title" hidden>
+        <div class="chat-head">
+          <div><p class="eyebrow">02 &nbsp;·&nbsp; Right where you need it</p><h1 id="chat-title">Your screen, in context.</h1><p class="lede">Ask naturally. Vela points back to the part of the page it used.</p></div>
+          <div class="scope-controls" role="group" aria-label="Choose what Vela can see"><button class="scope-button" type="button" data-scope="tab" aria-pressed="true">This tab</button><button class="scope-button" type="button" data-scope="area" aria-pressed="false">Pick an area</button></div>
+        </div>
+        <div class="workbench">
+          <div class="screen-pane">
+            <div class="pane-top"><span class="pane-top-label"><i class="green-dot"></i><span id="scope-label">Sharing this tab</span></span><button class="capture-button" id="capture-button" type="button"><span aria-hidden="true">◉</span><span id="capture-label">Capture context</span></button></div>
+            <div class="browser">
+              <div class="browser-chrome"><i></i><i></i><i></i><span class="browser-url">learn.northstar.edu / thermal-systems</span></div>
+              <article class="webpage">
+                <div class="web-kicker">Engineering · Thermal systems</div>
+                <h3>Keeping data centres cool, one loop at a time</h3>
+                <div class="web-meta">6 min read &nbsp;·&nbsp; Northstar Learning</div>
+                <div class="web-copy">
+                  <p>Modern processors turn a surprising amount of electricity into heat. If that heat stays trapped, chips slow down to protect themselves — and the computers we rely on become less efficient.</p>
+                  <p class="selected-copy">A <strong>heat exchanger</strong> transfers thermal energy from one fluid to another without letting the two fluids mix. In a liquid cooling loop, warm water picks up heat near the processor, then releases it as it passes through a separate cooling circuit.<br><span class="selection-tag"><i></i> Context Vela is using · paragraph 2</span></p>
+                  <p>Because liquid carries heat more effectively than air, these systems can use less energy while keeping dense computing equipment at a stable temperature.</p>
+                </div>
+                <div class="web-figure"><div class="figure-block"></div><div class="figure-lines"><i></i><i></i><i></i></div></div>
+              </article>
+            </div>
+          </div>
+          <aside class="assist-pane" aria-label="Vela chat">
+            <div class="assistant-top"><div class="assistant-name"><span class="assistant-symbol" aria-hidden="true">✳</span><span>Vela<small>Here with the page you shared</small></span></div><button class="icon-button" id="new-chat" type="button" aria-label="Start a new question" title="New question">＋</button></div>
+            <div class="context-pill"><span class="context-icon" aria-hidden="true">▤</span><span><strong>Context:</strong> Northstar Learning · paragraph 2</span></div>
+            <div class="messages" id="messages" aria-live="polite" aria-label="Conversation">
+              <div class="msg user">What is a heat exchanger?</div>
+              <div class="msg assistant">It’s a device that <strong>moves heat from one fluid to another without mixing them</strong>. Here, warm water carries heat away from the processor and passes it to a separate cooling circuit — like two lanes exchanging warmth through a shared wall.<br><span class="source-chip"><i></i> From paragraph 2 on this page</span></div>
+            </div>
+            <div class="starter"><span class="starter-label">Try asking</span><button type="button" data-prompt="Can you explain this in simpler words?">Explain this more simply</button><button type="button" data-prompt="Why use liquid instead of air?">Why use liquid instead of air?</button></div>
+            <form class="composer" id="question-form">
+              <div class="composer-box"><textarea id="question-input" rows="2" aria-label="Ask about the shared screen" placeholder="Ask about what you’re looking at…"></textarea><div class="composer-tools"><span class="composer-hint">Enter to ask · answers are sample text</span><button class="send-button" type="submit" aria-label="Send question">↑</button></div></div>
+            </form>
+            <div class="demo-disclaimer">Demo only · no live capture or AI model connected</div>
+          </aside>
+        </div>
+        <p class="footer-note">The on-screen page and conversation are sample content. Use the controls to explore the flow.</p>
+      </section>
+
+      <section class="screen" id="screen-library" aria-labelledby="library-title" hidden>
+        <p class="eyebrow">03 &nbsp;·&nbsp; You stay in control</p>
+        <h1 id="library-title">A useful trail, never a mystery.</h1>
+        <p class="lede">Find a recent answer, decide what’s kept, and pause screen context whenever you need a clean slate.</p>
+        <div class="library-layout">
+          <section class="history-panel" aria-labelledby="history-heading">
+            <div class="panel-head"><div><h2 id="history-heading">Recent questions</h2><p>Your conversations, easy to revisit.</p></div><input class="search-box" id="history-search" type="search" placeholder="Search history" aria-label="Search history"></div>
+            <div class="history-list" id="history-list">
+              <div class="history-row" role="button" tabindex="0" data-history="heat exchanger thermal systems northstar learning"><span class="history-icon" aria-hidden="true">↗</span><span><span class="history-title">What is a heat exchanger?</span><span class="history-meta">Northstar Learning · 3 questions</span></span><span class="history-time">2 min ago</span></div>
+              <div class="history-row" role="button" tabindex="0" data-history="spreadsheet conditional formatting monthly budget"><span class="history-icon" aria-hidden="true">▦</span><span><span class="history-title">Help me read this formula</span><span class="history-meta">Monthly budget · 1 question</span></span><span class="history-time">Yesterday</span></div>
+              <div class="history-row" role="button" tabindex="0" data-history="settings browser permissions privacy"><span class="history-icon" aria-hidden="true">⌘</span><span><span class="history-title">Where do I change browser permissions?</span><span class="history-meta">Browser settings · 2 questions</span></span><span class="history-time">Sep 22</span></div>
+              <div class="history-row" role="button" tabindex="0" data-history="lecture notes Fourier transform equation"><span class="history-icon" aria-hidden="true">∿</span><span><span class="history-title">What does this equation describe?</span><span class="history-meta">Lecture notes · 4 questions</span></span><span class="history-time">Sep 20</span></div>
+              <div class="empty-search" id="empty-search">No matching conversations.</div>
+            </div>
+          </section>
+          <section class="settings-panel" aria-labelledby="settings-heading">
+            <div class="panel-head"><div><h2 id="settings-heading">Privacy &amp; preferences</h2><p>Thoughtful defaults, yours to change.</p></div></div>
+            <div class="settings-group">
+              <p class="settings-label">Screen access</p>
+              <div class="setting-row"><span><strong>Pause visual context</strong><small>Stop sharing until you turn it back on.</small></span><button class="switch" type="button" role="switch" aria-checked="false" aria-label="Pause visual context" data-toggle="pause"></button></div>
+              <p class="settings-label">Your history</p>
+              <div class="setting-row"><span><strong>Save conversations</strong><small>Keep your questions in this device’s history.</small></span><button class="switch" type="button" role="switch" aria-checked="true" aria-label="Save conversations" data-toggle="save"></button></div>
+              <div class="setting-row"><span><strong>Keep history for</strong><small>Older conversations are removed automatically.</small></span><select class="retention-select" id="retention"><option>30 days</option><option>7 days</option><option>Never save</option></select></div>
+              <button class="danger-link" id="clear-history" type="button">Clear recent activity</button>
+            </div>
+          </section>
+        </div>
+        <div class="library-note"><span aria-hidden="true">◈</span><span><b>In a real app:</b> access and retention would follow your device’s OS permissions. Every control shown here is a prototype interaction, not a system setting.</span></div>
+        <p class="footer-note">This history is example content. Search, preference toggles, and clearing activity are interactive.</p>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    (() => {
+      const screens = ["setup", "chat", "library"];
+      const screenLabels = { setup: "01 / 03", chat: "02 / 03", library: "03 / 03" };
+      const toast = document.getElementById("toast");
+      let toastTimer;
+      let currentScope = "tab";
+
+      function notify(message) {
+        toast.textContent = message;
+        toast.classList.add("show");
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(() => toast.classList.remove("show"), 2900);
+      }
+
+      function showScreen(name) {
+        if (!screens.includes(name)) return;
+        screens.forEach((screen) => {
+          document.getElementById(`screen-${screen}`).hidden = screen !== name;
+        });
+        document.querySelectorAll(".nav-button[data-screen]").forEach((button) => {
+          if (button.dataset.screen === name) button.setAttribute("aria-current", "page");
+          else button.removeAttribute("aria-current");
+        });
+        document.getElementById("progress-label").textContent = screenLabels[name];
+        document.querySelectorAll(".progress-bars i").forEach((bar, index) => {
+          bar.classList.toggle("active", index <= screens.indexOf(name));
+        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      document.querySelectorAll("[data-screen]").forEach((button) => button.addEventListener("click", () => showScreen(button.dataset.screen)));
+      document.querySelectorAll("[data-go]").forEach((button) => button.addEventListener("click", () => showScreen(button.dataset.go)));
+
+      document.querySelectorAll(".mode-option").forEach((button) => button.addEventListener("click", () => {
+        document.querySelectorAll(".mode-option").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+        if (button.dataset.mode === "memory") notify("Short visual memory selected for the demo. You can turn it off in History & settings.");
+        else notify("Vela will only see context when you choose to ask.");
+      }));
+
+      let connected = false;
+      document.getElementById("connect-button").addEventListener("click", (event) => {
+        connected = !connected;
+        document.getElementById("permission-status").textContent = connected ? "Demo connected · no live screen capture" : "Not connected · choose a tab or area";
+        document.getElementById("connect-button").textContent = connected ? "Disconnect" : "Set up";
+        document.getElementById("permission-title").textContent = connected ? "Screen sharing · demo" : "Screen sharing";
+        notify(connected ? "Demo permission connected. Your actual screen is not being captured." : "Demo permission disconnected.");
+      });
+
+      document.querySelectorAll("[data-scope]").forEach((button) => button.addEventListener("click", () => {
+        currentScope = button.dataset.scope;
+        document.querySelectorAll("[data-scope]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+        document.getElementById("scope-label").textContent = currentScope === "tab" ? "Sharing this tab" : "Area selection · simulated";
+        notify(currentScope === "tab" ? "Vela is focused on this sample tab." : "Area selection is simulated in this prototype.");
+      }));
+
+      document.getElementById("capture-button").addEventListener("click", () => {
+        const label = document.getElementById("capture-label");
+        label.textContent = "Captured · just now";
+        document.getElementById("scope-label").textContent = currentScope === "tab" ? "Tab context ready" : "Selected area ready";
+        notify("Sample context refreshed. No screenshot was taken.");
+      });
+
+      const messages = document.getElementById("messages");
+      const questionInput = document.getElementById("question-input");
+      function addMessage(question) {
+        const userMessage = document.createElement("div");
+        userMessage.className = "msg user";
+        userMessage.textContent = question;
+        messages.append(userMessage);
+        const answer = document.createElement("div");
+        answer.className = "msg assistant";
+        const isSimple = /simpl|plain|easy/i.test(question);
+        const isLiquid = /liquid|air|cool|water/i.test(question);
+        if (isSimple) {
+          answer.append("Think of it like a radiator: warm water picks up heat from the computer, then passes that heat to another loop. The two liquids never touch.");
+        } else if (isLiquid) {
+          answer.append("Liquid can carry heat away more effectively than air, so the system can keep powerful processors cool with less energy. The page’s second paragraph explains the heat-exchanger part.");
+        } else {
+          answer.append("The page says a heat exchanger moves heat between two fluids without mixing them. In this example, it helps carry warmth away from the processor.");
+        }
+        const source = document.createElement("span");
+        source.className = "source-chip";
+        source.innerHTML = "<i></i> From paragraph 2 on this page";
+        answer.append(document.createElement("br"), source);
+        messages.append(answer);
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      document.getElementById("question-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const question = questionInput.value.trim();
+        if (!question) { questionInput.focus(); return; }
+        addMessage(question);
+        questionInput.value = "";
+        notify("Sample answer added. A real Vela would use the shared screen context.");
+      });
+      questionInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          document.getElementById("question-form").requestSubmit();
+        }
+      });
+      document.querySelectorAll("[data-prompt]").forEach((button) => button.addEventListener("click", () => {
+        questionInput.value = button.dataset.prompt;
+        document.getElementById("question-form").requestSubmit();
+      }));
+      document.getElementById("new-chat").addEventListener("click", () => {
+        messages.replaceChildren();
+        const welcome = document.createElement("div");
+        welcome.className = "msg assistant";
+        welcome.textContent = "What would you like to understand on this page?";
+        messages.append(welcome);
+        questionInput.focus();
+      });
+
+      const search = document.getElementById("history-search");
+      function filterHistory() {
+        const query = search.value.trim().toLowerCase();
+        let visible = 0;
+        document.querySelectorAll(".history-row").forEach((row) => {
+          const match = !query || `${row.dataset.history} ${row.textContent}`.toLowerCase().includes(query);
+          row.hidden = !match;
+          if (match) visible++;
+        });
+        document.getElementById("empty-search").style.display = visible ? "none" : "block";
+      }
+      search.addEventListener("input", filterHistory);
+
+      function openHistoryRow(row) {
+        showScreen("chat");
+        notify(`Reopened “${row.querySelector(".history-title").textContent}” (sample conversation).`);
+      }
+      document.querySelectorAll(".history-row").forEach((row) => {
+        row.addEventListener("click", () => openHistoryRow(row));
+        row.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openHistoryRow(row); }
+        });
+      });
+
+      document.querySelectorAll("[data-toggle]").forEach((button) => button.addEventListener("click", () => {
+        const next = button.getAttribute("aria-checked") !== "true";
+        button.setAttribute("aria-checked", String(next));
+        const label = button.getAttribute("aria-label");
+        notify(`${label} ${next ? "enabled" : "disabled"} for this prototype.`);
+      }));
+      document.getElementById("clear-history").addEventListener("click", () => {
+        document.querySelectorAll(".history-row").forEach((row) => row.remove());
+        search.value = "";
+        filterHistory();
+        notify("Sample recent activity cleared.");
+      });
+    })();
+  </script>
+</body>
+</html>
